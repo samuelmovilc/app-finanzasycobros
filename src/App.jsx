@@ -1,122 +1,171 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import api from './api';
+import './../styles.css'; // Mantenemos tu diseño premium original
 
-function App() {
-  const [count, setCount] = useState(0)
+// ================= LOGIN =================
+const Login = ({ setAuth }) => {
+  const [email, setEmail] = useState('admin@finanzas.com');
+  const [password, setPassword] = useState('admin123');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      const res = await api.post('/auth/login', { email, password });
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+      setAuth(true);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Error al iniciar sesión');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-dark)' }}>
+      <div className="card" style={{ width: '400px', padding: '40px' }}>
+        <h2 style={{ textAlign: 'center', marginBottom: '20px', color: 'var(--accent-primary)' }}>FinanPOS</h2>
+        {error && <div style={{ color: 'var(--accent-danger)', marginBottom: '15px' }}>{error}</div>}
+        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <input 
+            type="email" placeholder="Correo Electrónico" 
+            value={email} onChange={(e)=>setEmail(e.target.value)}
+            style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-dark)', color: '#fff' }} required
+          />
+          <input 
+            type="password" placeholder="Contraseña" 
+            value={password} onChange={(e)=>setPassword(e.target.value)}
+            style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-dark)', color: '#fff' }} required
+          />
+          <button type="submit" className="btn btn-primary" disabled={loading} style={{ justifyContent: 'center' }}>
+            {loading ? 'Cargando...' : 'Entrar al Sistema'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
 
-      <div className="ticks"></div>
+// ================= DASHBOARD =================
+const Dashboard = () => {
+  const [data, setData] = useState({ capital_prestado: 0, caja_actual: 0, recentLoans: [] });
+  const [loading, setLoading] = useState(true);
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+  useEffect(() => {
+    fetchDashboard();
+  }, []);
+
+  const fetchDashboard = async () => {
+    try {
+      const res = await api.get('/dashboard');
+      setData(res.data);
+    } catch (error) {
+      console.error('Error cargando dashboard', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <div style={{ padding: '40px', color: '#fff' }}>Cargando datos financieros...</div>;
+
+  return (
+    <div className="app-container">
+      {/* Sidebar - Reutilizando el CSS */}
+      <aside className="sidebar">
+        <div className="sidebar-header">
+          <div className="logo">
+            <h2>FinanPOS</h2>
+          </div>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        <nav className="sidebar-nav">
+          <a href="#" className="nav-item active"><span>Dashboard</span></a>
+          <a href="#" className="nav-item"><span>Clientes</span></a>
+          <a href="#" className="nav-item"><span>Préstamos</span></a>
+          <button onClick={() => { localStorage.clear(); window.location.href='/'; }} style={{background:'transparent', border:'none', color:'var(--accent-danger)', padding:'12px 16px', textAlign:'left', cursor:'pointer', marginTop:'auto', fontWeight:'bold'}}>Cerrar Sesión</button>
+        </nav>
+      </aside>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
-}
+      <main className="main-content">
+        <header className="top-header">
+          <div className="header-title">
+            <h1>Panel Principal</h1>
+            <p>Resumen financiero en tiempo real</p>
+          </div>
+          <div className="header-actions">
+            <button className="btn btn-primary">Nuevo Préstamo</button>
+          </div>
+        </header>
 
-export default App
+        <section className="summary-cards">
+          <div className="card summary-card highlight">
+            <div className="card-info">
+              <p className="card-label">Capital Prestado</p>
+              <h3 className="card-value">${Number(data.capital_prestado).toLocaleString()}</h3>
+            </div>
+          </div>
+          <div className="card summary-card">
+            <div className="card-info">
+              <p className="card-label">Caja Actual (Recaudos)</p>
+              <h3 className="card-value">${Number(data.caja_actual).toLocaleString()}</h3>
+            </div>
+          </div>
+        </section>
+
+        <section className="analysis-section" style={{ gridTemplateColumns: '1fr' }}>
+          <div className="card recent-activity">
+            <div className="card-header">
+              <h2>Préstamos Recientes</h2>
+            </div>
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Cliente</th>
+                    <th>Capital</th>
+                    <th>Tasa (%)</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.recentLoans.length === 0 ? (
+                    <tr><td colSpan="4">No hay préstamos activos.</td></tr>
+                  ) : (
+                    data.recentLoans.map(loan => (
+                      <tr key={loan.id}>
+                        <td><strong>{loan.client_name}</strong></td>
+                        <td>${Number(loan.capital_amount).toLocaleString()}</td>
+                        <td>{loan.interest_rate}%</td>
+                        <td><span className="badge active">{loan.status}</span></td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+};
+
+// ================= ROUTER =================
+const App = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
+
+  return (
+    <Router>
+      <Routes>
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login setAuth={setIsAuthenticated} />} />
+        <Route path="/" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
+      </Routes>
+    </Router>
+  );
+};
+
+export default App;
