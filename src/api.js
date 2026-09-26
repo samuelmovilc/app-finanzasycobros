@@ -14,4 +14,23 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      if (error.response.status === 401) {
+        localStorage.clear();
+        window.location.href = '/login';
+      }
+      
+      const errMsg = error.response.data?.error || 'Ocurrió un error inesperado';
+      // Despachar evento para mostrar Toast (atrapado en App.jsx)
+      window.dispatchEvent(new CustomEvent('api-error', { detail: errMsg }));
+    } else {
+      window.dispatchEvent(new CustomEvent('api-error', { detail: 'Error de red. Verifique su conexión.' }));
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

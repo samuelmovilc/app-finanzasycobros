@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import api from './api';
 import './../styles.css';
@@ -9,6 +9,17 @@ import Prestamos from './pages/Prestamos';
 import Transacciones from './pages/Transacciones';
 import Reportes from './pages/Reportes';
 import Configuracion from './pages/Configuracion';
+
+// ================= GLOBAL TOAST =================
+const Toast = ({ message, onClose }) => {
+  if (!message) return null;
+  return (
+    <div style={{ position: 'fixed', top: '20px', right: '20px', backgroundColor: 'var(--accent-danger)', color: 'white', padding: '15px 25px', borderRadius: 'var(--radius-md)', zIndex: 9999, boxShadow: 'var(--shadow-soft)', display: 'flex', alignItems: 'center', gap: '15px', animation: 'slideIn 0.3s ease' }}>
+      <span>{message}</span>
+      <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', fontWeight: 'bold' }}>X</button>
+    </div>
+  );
+};
 
 // ================= LOGIN =================
 const Login = ({ setAuth }) => {
@@ -61,9 +72,21 @@ const Login = ({ setAuth }) => {
 // ================= ROUTER =================
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
+  const [toastMessage, setToastMessage] = useState('');
+
+  useEffect(() => {
+    const handleError = (e) => {
+      setToastMessage(e.detail);
+      setTimeout(() => setToastMessage(''), 5000);
+    };
+
+    window.addEventListener('api-error', handleError);
+    return () => window.removeEventListener('api-error', handleError);
+  }, []);
 
   return (
     <Router>
+      <Toast message={toastMessage} onClose={() => setToastMessage('')} />
       <Routes>
         <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login setAuth={setIsAuthenticated} />} />
         
