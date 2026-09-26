@@ -74,7 +74,7 @@ const Reportes = () => {
       const tableColumn = ["ID", "Fecha", "Concepto", "Tipo", "Monto"];
       const tableRows = [];
 
-      const transData = Array.isArray(res.data) ? res.data : [];
+      const transData = Array.isArray(res.data) ? res.data.filter(t => t.status !== 'ANULADO') : [];
 
       if (transData.length === 0) {
           tableRows.push(["-", "-", "No hay transacciones registradas", "-", "-"]);

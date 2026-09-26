@@ -8,13 +8,13 @@ exports.getStats = async (req, res, next) => {
         const [intereses] = await db.query("SELECT SUM(capital_amount * (interest_rate / 100)) as pendientes FROM loans WHERE status = 'ACTIVO'");
 
         // Calcular caja actual
-        const [trans] = await db.query("SELECT type, SUM(amount) as total FROM transactions GROUP BY type");
+        const [trans] = await db.query("SELECT type, SUM(amount) as total FROM transactions WHERE status != 'ANULADO' GROUP BY type");
         let caja = 0;
         let capitalInvertido = 150000; // Base inicial para demo, o sumar INGRESO_CAPITAL
 
         trans.forEach(t => {
-            if (['PAGO_RECIBIDO', 'INGRESO_MANUAL', 'INGRESO_CAPITAL'].includes(t.type)) caja += Number(t.total);
-            if (['PRESTAMO_OTORGADO', 'EGRESO_MANUAL'].includes(t.type)) caja -= Number(t.total);
+            if (['PAGO_RECIBIDO', 'INGRESO_MANUAL', 'INGRESO_CAPITAL', 'INGRESO'].includes(t.type)) caja += Number(t.total);
+            if (['PRESTAMO_OTORGADO', 'EGRESO_MANUAL', 'EGRESO'].includes(t.type)) caja -= Number(t.total);
             if (t.type === 'INGRESO_CAPITAL') capitalInvertido += Number(t.total);
         });
         

@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
 import Sidebar from '../components/Sidebar';
-import { Plus, Check, X } from 'lucide-react';
+import { Plus, Check, X, Edit, Ban } from 'lucide-react';
 
 const Transacciones = () => {
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Modales
   const [showModal, setShowModal] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   
   // Estado del formulario de transacción
   const [formData, setFormData] = useState({ amount: '', concept: '', type: 'INGRESO', category_id: '' });
@@ -40,7 +44,7 @@ const Transacciones = () => {
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) return;
     try {
-      const res = await api.post('/categories', { name: newCategoryName, type: formData.type });
+      const res = await api.post('/categories', { name: newCategoryName, type: formData.type.includes('INGRESO') ? 'INGRESO' : 'EGRESO' });
       setCategories([...categories, res.data]);
       setFormData({ ...formData, category_id: res.data.id });
       setNewCategoryName('');
@@ -50,21 +54,60 @@ const Transacciones = () => {
     }
   };
 
+  const handleOpenNew = () => {
+    setEditMode(false);
+    setEditingId(null);
+    setFormData({ amount: '', concept: '', type: 'INGRESO', category_id: '' });
+    setError('');
+    setShowModal(true);
+  };
+
+  const handleOpenEdit = (t) => {
+    setEditMode(true);
+    setEditingId(t.id);
+    setFormData({
+      amount: t.amount,
+      concept: t.concept || '',
+      type: t.type,
+      category_id: t.category_id || ''
+    });
+    setError('');
+    setShowModal(true);
+  };
+
+  const handleCancelTransaction = async (id) => {
+    if (window.confirm('¿Seguro que quieres anular esta transacción? Se excluirá de todos los cálculos.')) {
+      try {
+        await api.put(`/transactions/${id}/cancel`);
+        fetchData();
+      } catch (err) {
+        alert('Error al anular transacción');
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (!formData.category_id) {
+        setError('Debes seleccionar una categoría obligatoriamente.');
+        return;
+    }
     try {
-      await api.post('/transactions', formData);
+      if (editMode) {
+        await api.put(`/transactions/${editingId}`, formData);
+      } else {
+        await api.post('/transactions', formData);
+      }
       setShowModal(false);
       setFormData({ amount: '', concept: '', type: 'INGRESO', category_id: '' });
       fetchData();
     } catch (err) {
-      setError('Error al registrar la transacción');
+      setError(err.response?.data?.error || 'Error al registrar la transacción');
     }
   };
 
-  // Filtrar categorías según el tipo seleccionado
-  const filteredCategories = categories.filter(c => c.type === formData.type);
+  const filteredCategories = categories.filter(c => c.type === (formData.type.includes('INGRESO') ? 'INGRESO' : 'EGRESO'));
 
   return (
     <div className="app-container">
@@ -76,7 +119,7 @@ const Transacciones = () => {
             <p>Registro manual de movimientos y categorías</p>
           </div>
           <div className="header-actions">
-            <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+            <button className="btn btn-primary" onClick={handleOpenNew}>
               <Plus size={20} /> Nueva Transacción
             </button>
           </div>
@@ -93,31 +136,53 @@ const Transacciones = () => {
                     <th>Concepto</th>
                     <th>Tipo</th>
                     <th>Monto</th>
+                    <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan="5">Cargando...</td></tr>
+                    <tr><td colSpan="6">Cargando...</td></tr>
                   ) : transactions.length === 0 ? (
-                    <tr><td colSpan="5">No hay transacciones.</td></tr>
+                    <tr><td colSpan="6">No hay transacciones.</td></tr>
                   ) : (
-                    transactions.map(t => (
-                      <tr key={t.id}>
-                        <td data-label="Fecha">{new Date(t.created_at).toLocaleDateString()}</td>
-                        <td data-label="Categoría"><strong>{t.category_name || '-'}</strong></td>
-                        <td data-label="Concepto">{t.concept}</td>
-                        <td data-label="Tipo">
-                            <span className={`badge ${t.type.includes('INGRESO') || t.type === 'PAGO_RECIBIDO' ? 'active' : 'danger'}`}>
-                                {t.type}
+                    transactions.map(t => {
+                      const isAnulado = t.status === 'ANULADO';
+                      return (
+                        <tr key={t.id} style={{ opacity: isAnulado ? 0.5 : 1 }}>
+                          <td data-label="Fecha" style={{ textDecoration: isAnulado ? 'line-through' : 'none' }}>
+                            {new Date(t.created_at).toLocaleDateString()}
+                          </td>
+                          <td data-label="Categoría" style={{ textDecoration: isAnulado ? 'line-through' : 'none' }}>
+                            <strong>{t.category_name || '-'}</strong>
+                          </td>
+                          <td data-label="Concepto" style={{ textDecoration: isAnulado ? 'line-through' : 'none' }}>
+                            {t.concept}
+                          </td>
+                          <td data-label="Tipo" style={{ textDecoration: isAnulado ? 'line-through' : 'none' }}>
+                              <span className={`badge ${t.type.includes('INGRESO') || t.type === 'PAGO_RECIBIDO' ? 'active' : 'danger'}`}>
+                                  {isAnulado ? 'ANULADO' : t.type}
+                              </span>
+                          </td>
+                          <td data-label="Monto" style={{ textDecoration: isAnulado ? 'line-through' : 'none' }}>
+                            <span style={{ color: isAnulado ? 'var(--text-muted)' : (t.type.includes('INGRESO') || t.type === 'PAGO_RECIBIDO' ? 'var(--accent-success)' : 'var(--accent-danger)') }}>
+                              {t.type.includes('INGRESO') || t.type === 'PAGO_RECIBIDO' ? '+' : '-'}${Number(t.amount).toLocaleString()}
                             </span>
-                        </td>
-                        <td data-label="Monto">
-                          <span style={{ color: t.type.includes('INGRESO') || t.type === 'PAGO_RECIBIDO' ? 'var(--accent-success)' : 'var(--accent-danger)' }}>
-                            {t.type.includes('INGRESO') || t.type === 'PAGO_RECIBIDO' ? '+' : '-'}${Number(t.amount).toLocaleString()}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
+                          </td>
+                          <td data-label="Acciones">
+                            {!isAnulado && (
+                              <div style={{ display: 'flex', gap: '10px' }}>
+                                <button className="btn-icon" onClick={() => handleOpenEdit(t)} title="Editar transacción" style={{ color: 'var(--accent-primary)', cursor: 'pointer', background: 'none', border: 'none' }}>
+                                  <Edit size={18} />
+                                </button>
+                                <button className="btn-icon" onClick={() => handleCancelTransaction(t.id)} title="Anular transacción" style={{ color: 'var(--accent-danger)', cursor: 'pointer', background: 'none', border: 'none' }}>
+                                  <Ban size={18} />
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })
                   )}
                 </tbody>
               </table>
@@ -128,11 +193,11 @@ const Transacciones = () => {
         {showModal && (
           <div style={modalOverlayStyle}>
             <div className="card" style={{ width:'400px' }}>
-              <h2 style={{ marginBottom:'20px', color:'var(--accent-primary)' }}>Registrar Movimiento</h2>
+              <h2 style={{ marginBottom:'20px', color:'var(--accent-primary)' }}>{editMode ? 'Editar Movimiento' : 'Registrar Movimiento'}</h2>
               {error && <div style={{ color:'var(--accent-danger)', marginBottom:'10px' }}>{error}</div>}
               
               <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:'15px' }}>
-                <select required value={formData.type} onChange={e => {
+                <select required value={formData.type.includes('INGRESO') ? 'INGRESO' : 'EGRESO'} onChange={e => {
                   setFormData({...formData, type: e.target.value, category_id: ''});
                   setIsCreatingCategory(false);
                 }} style={inputStyle}>
@@ -140,7 +205,6 @@ const Transacciones = () => {
                   <option value="EGRESO">Egreso Manual</option>
                 </select>
 
-                {/* Sección de Categoría */}
                 {!isCreatingCategory ? (
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <select required value={formData.category_id} onChange={e => setFormData({...formData, category_id: e.target.value})} style={{...inputStyle, flex: 1}}>
@@ -172,7 +236,7 @@ const Transacciones = () => {
                 
                 <div style={{ display:'flex', gap:'10px', marginTop:'10px' }}>
                   <button type="button" onClick={() => setShowModal(false)} style={cancelBtnStyle}>Cancelar</button>
-                  <button type="submit" className="btn btn-primary" style={{ flex:1 }}>Guardar Movimiento</button>
+                  <button type="submit" className="btn btn-primary" style={{ flex:1 }}>{editMode ? 'Guardar Cambios' : 'Guardar Movimiento'}</button>
                 </div>
               </form>
             </div>
