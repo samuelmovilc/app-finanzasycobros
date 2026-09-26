@@ -3,7 +3,7 @@ const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
-const { initDatabase } = require('./db');
+const db = require('./db');
 
 const app = express();
 app.use(cors());
@@ -11,8 +11,6 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3020;
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_key_2026';
-
-let db;
 
 // Middleware de autenticación
 const authMiddleware = (req, res, next) => {
@@ -104,20 +102,17 @@ app.get('/api/loans', async (req, res) => {
 });
 
 app.post('/api/loans', async (req, res) => {
-    // Transacción SQL para asegurar consistencia
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
         const { client_id, capital_amount, interest_rate } = req.body;
         
-        // 1. Crear Préstamo
         const [loanResult] = await connection.query(
             'INSERT INTO loans (client_id, capital_amount, interest_rate) VALUES (?, ?, ?)',
             [client_id, capital_amount, interest_rate]
         );
         const loanId = loanResult.insertId;
 
-        // 2. Registrar Egreso (Sale dinero de la caja)
         await connection.query(
             'INSERT INTO transactions (type, amount, concept, loan_id) VALUES (?, ?, ?, ?)',
             ['PRESTAMO_OTORGADO', capital_amount, 'Desembolso de Préstamo', loanId]
@@ -133,7 +128,6 @@ app.post('/api/loans', async (req, res) => {
     }
 });
 
-// Registrar un Pago
 app.post('/api/payments', async (req, res) => {
     try {
         const { loan_id, amount, concept } = req.body;
@@ -169,15 +163,12 @@ app.get('/api/dashboard', async (req, res) => {
     }
 });
 
-async function startServer() {
-    try {
-        db = await initDatabase();
-        app.listen(PORT, () => {
-            console.log(`✅ Servidor Backend corriendo en el puerto ${PORT}`);
-        });
-    } catch (error) {
-        console.error('❌ Error fatal:', error);
-        process.exit(1);
-    }
+// Arrancar en local
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`✅ Servidor Backend corriendo en el puerto ${PORT}`);
+    });
 }
-startServer();
+
+// Exportar para Vercel Serverless
+module.exports = app;
