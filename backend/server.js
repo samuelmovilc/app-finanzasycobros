@@ -44,6 +44,23 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
+app.put('/api/auth/password', authMiddleware, async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const userId = req.user.id;
+        
+        const [users] = await db.query('SELECT password FROM users WHERE id = ?', [userId]);
+        const match = await bcrypt.compare(currentPassword, users[0].password);
+        if (!match) return res.status(401).json({ error: 'Contraseña actual incorrecta' });
+
+        const hashed = await bcrypt.hash(newPassword, 10);
+        await db.query('UPDATE users SET password = ? WHERE id = ?', [hashed, userId]);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al cambiar contraseña' });
+    }
+});
+
 // Todas las rutas debajo requieren autenticación
 app.use('/api', authMiddleware);
 
@@ -141,12 +158,82 @@ app.post('/api/payments', async (req, res) => {
     }
 });
 
+app.get('/api/loans/:id/payments', async (req, res) => {
+    try {
+        const [payments] = await db.query(
+            'SELECT * FROM transactions WHERE loan_id = ? AND type = "PAGO_RECIBIDO" ORDER BY created_at DESC',
+            [req.params.id]
+        );
+        res.json(payments);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener historial' });
+    }
+});
+
+app.put('/api/loans/:id/status', async (req, res) => {
+    try {
+        const { status } = req.body;
+        await db.query('UPDATE loans SET status = ? WHERE id = ?', [status, req.params.id]);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al cambiar estado' });
+    }
+});
+
+app.get('/api/transactions', async (req, res) => {
+    try {
+        const [transactions] = await db.query('SELECT * FROM transactions ORDER BY created_at DESC');
+        res.json(transactions);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener transacciones' });
+    }
+});
+
+app.post('/api/transactions', async (req, res) => {
+    try {
+        const { amount, concept, type } = req.body;
+        // Tipos permitidos para registro manual: INGRESO_MANUAL, EGRESO_MANUAL, INGRESO_CAPITAL
+        await db.query(
+            'INSERT INTO transactions (amount, concept, type, user_id) VALUES (?, ?, ?, ?)',
+            [amount, concept, type, 1] // Asumiendo user_id 1
+        );
+        res.status(201).json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al registrar transacción' });
+    }
+});
+
 // ======================= DASHBOARD =======================
 app.get('/api/dashboard', async (req, res) => {
     try {
         const [loans] = await db.query("SELECT SUM(capital_amount) as total_prestado FROM loans WHERE status = 'ACTIVO'");
-        const [incomes] = await db.query("SELECT SUM(amount) as total_caja FROM transactions WHERE type = 'PAGO_RECIBIDO'");
         
+        // Calcular intereses pendientes (basado en capital_amount * interest_rate / 100)
+        const [intereses] = await db.query("SELECT SUM(capital_amount * (interest_rate / 100)) as pendientes FROM loans WHERE status = 'ACTIVO'");
+
+        // Calcular caja actual
+        // Entradas: PAGO_RECIBIDO, INGRESO_MANUAL, INGRESO_CAPITAL
+        // Salidas: PRESTAMO_OTORGADO, EGRESO_MANUAL
+        const [trans] = await db.query("SELECT type, SUM(amount) as total FROM transactions GROUP BY type");
+        let caja = 0;
+        let capitalInvertido = 150000; // Base inicial para demo, o sumar INGRESO_CAPITAL
+
+        trans.forEach(t => {
+            if (['PAGO_RECIBIDO', 'INGRESO_MANUAL', 'INGRESO_CAPITAL'].includes(t.type)) caja += Number(t.total);
+            if (['PRESTAMO_OTORGADO', 'EGRESO_MANUAL'].includes(t.type)) caja -= Number(t.total);
+            if (t.type === 'INGRESO_CAPITAL') capitalInvertido += Number(t.total);
+        });
+        
+        // Datos de préstamos por mes (últimos 6 meses)
+        const [chartDataQuery] = await db.query(`
+            SELECT DATE_FORMAT(created_at, '%b') as name, SUM(capital_amount) as total 
+            FROM loans 
+            WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+            GROUP BY name
+            ORDER BY MIN(created_at) ASC
+        `);
+
+        // Préstamos recientes
         const [recentLoans] = await db.query(`
             SELECT l.id, l.capital_amount, l.interest_rate, l.status, c.name as client_name 
             FROM loans l JOIN clients c ON l.client_id = c.id 
@@ -155,10 +242,17 @@ app.get('/api/dashboard', async (req, res) => {
 
         res.json({
             capital_prestado: loans[0].total_prestado || 0,
-            caja_actual: incomes[0].total_caja || 0,
+            intereses_pendientes: intereses[0].pendientes || 0,
+            caja_actual: caja,
+            total_invertido: capitalInvertido,
+            chartData: chartDataQuery.length > 0 ? chartDataQuery : [
+                { name: 'Abr', total: 0 }, { name: 'May', total: 0 }, { name: 'Jun', total: 0 }, 
+                { name: 'Jul', total: 0 }, { name: 'Ago', total: 0 }, { name: 'Sep', total: 0 }
+            ],
             recentLoans
         });
     } catch (error) {
+        console.error(error);
         res.status(500).json({ error: 'Error al cargar el dashboard' });
     }
 });

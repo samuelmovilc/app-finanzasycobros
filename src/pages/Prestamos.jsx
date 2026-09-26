@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
 import Sidebar from '../components/Sidebar';
-import { Plus, DollarSign } from 'lucide-react';
+import { Plus, DollarSign, List, CheckCircle } from 'lucide-react';
 
 const Prestamos = () => {
   const [loans, setLoans] = useState([]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showLoanModal, setShowLoanModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(null); // guardará el id del préstamo
+  const [showPaymentModal, setShowPaymentModal] = useState(null); 
+  const [showHistoryModal, setShowHistoryModal] = useState(null); 
+  const [paymentsHistory, setPaymentsHistory] = useState([]);
+  
   const [loanForm, setLoanForm] = useState({ client_id: '', capital_amount: '', interest_rate: '' });
   const [paymentForm, setPaymentForm] = useState({ amount: '', concept: 'Pago de cuota' });
   const [error, setError] = useState('');
@@ -58,6 +61,28 @@ const Prestamos = () => {
     }
   };
 
+  const openHistory = async (id) => {
+    setShowHistoryModal(id);
+    try {
+      const res = await api.get(`/loans/${id}/payments`);
+      setPaymentsHistory(res.data);
+    } catch (err) {
+      console.error('Error al cargar historial');
+    }
+  };
+
+  const markAsPaid = async (id) => {
+    if (window.confirm('¿Confirmas que este préstamo ha sido liquidado totalmente?')) {
+      try {
+        await api.put(`/loans/${id}/status`, { status: 'PAGADO' });
+        fetchData();
+        setShowHistoryModal(null);
+      } catch (err) {
+        alert('Error al liquidar');
+      }
+    }
+  };
+
   return (
     <div className="app-container">
       <Sidebar />
@@ -100,13 +125,16 @@ const Prestamos = () => {
                         <td><strong>{l.client_name}</strong></td>
                         <td>${Number(l.capital_amount).toLocaleString()}</td>
                         <td>{l.interest_rate}%</td>
-                        <td><span className={`badge ${l.status === 'ACTIVO' ? 'active' : 'warning'}`}>{l.status}</span></td>
+                        <td><span className={`badge ${l.status === 'ACTIVO' ? 'active' : 'neutral'}`}>{l.status}</span></td>
                         <td>
                           {l.status === 'ACTIVO' && (
-                            <button onClick={() => setShowPaymentModal(l.id)} className="btn btn-primary" style={{ padding: '5px 10px', fontSize: '12px' }}>
+                            <button onClick={() => setShowPaymentModal(l.id)} className="btn btn-primary" style={{ padding: '5px 10px', fontSize: '12px', marginRight: '5px' }}>
                               <DollarSign size={14} /> Abonar
                             </button>
                           )}
+                          <button onClick={() => openHistory(l.id)} className="btn btn-primary" style={{ padding: '5px 10px', fontSize: '12px', backgroundColor: 'var(--bg-light)' }}>
+                            <List size={14} /> Historial
+                          </button>
                         </td>
                       </tr>
                     ))
@@ -143,7 +171,7 @@ const Prestamos = () => {
         {showPaymentModal && (
           <div style={modalOverlayStyle}>
             <div className="card" style={{ width:'400px' }}>
-              <h2 style={{ marginBottom:'20px', color:'var(--accent-primary)' }}>Registrar Pago</h2>
+              <h2 style={{ marginBottom:'20px', color:'var(--accent-primary)' }}>Registrar Abono</h2>
               {error && <div style={{ color:'var(--accent-danger)', marginBottom:'10px' }}>{error}</div>}
               <form onSubmit={handlePaymentSubmit} style={{ display:'flex', flexDirection:'column', gap:'15px' }}>
                 <input type="number" placeholder="Monto del Abono ($)" required value={paymentForm.amount} onChange={e => setPaymentForm({...paymentForm, amount: e.target.value})} style={inputStyle} />
@@ -156,13 +184,44 @@ const Prestamos = () => {
             </div>
           </div>
         )}
+
+        {/* Modal Historial */}
+        {showHistoryModal && (
+          <div style={modalOverlayStyle}>
+            <div className="card" style={{ width:'500px', maxHeight: '80vh', overflowY: 'auto' }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px' }}>
+                  <h2 style={{ color:'var(--accent-primary)', margin:0 }}>Historial de Abonos</h2>
+                  {loans.find(l => l.id === showHistoryModal)?.status === 'ACTIVO' && (
+                      <button onClick={() => markAsPaid(showHistoryModal)} className="btn btn-primary" style={{ backgroundColor: 'var(--accent-success)' }}>
+                          <CheckCircle size={16} /> Liquidar
+                      </button>
+                  )}
+              </div>
+              <table className="data-table" style={{ marginBottom: '20px' }}>
+                <thead><tr><th>Fecha</th><th>Concepto</th><th>Monto</th></tr></thead>
+                <tbody>
+                  {paymentsHistory.length === 0 ? <tr><td colSpan="3">No hay abonos registrados</td></tr> : 
+                    paymentsHistory.map(p => (
+                      <tr key={p.id}>
+                        <td>{new Date(p.created_at).toLocaleDateString()}</td>
+                        <td>{p.concept}</td>
+                        <td>${Number(p.amount).toLocaleString()}</td>
+                      </tr>
+                    ))
+                  }
+                </tbody>
+              </table>
+              <button type="button" onClick={() => setShowHistoryModal(null)} style={cancelBtnStyle}>Cerrar</button>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
 };
 
 const inputStyle = { padding:'10px', borderRadius:'8px', border:'1px solid var(--border-color)', backgroundColor:'var(--bg-dark)', color:'#fff' };
-const cancelBtnStyle = { flex:1, padding:'10px', borderRadius:'8px', backgroundColor:'var(--bg-light)', color:'#fff', border:'none', cursor:'pointer' };
+const cancelBtnStyle = { padding:'10px', borderRadius:'8px', backgroundColor:'var(--bg-light)', color:'#fff', border:'none', cursor:'pointer', width: '100%' };
 const modalOverlayStyle = { position:'fixed', top:0, left:0, right:0, bottom:0, backgroundColor:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', zIndex: 1000 };
 
 export default Prestamos;

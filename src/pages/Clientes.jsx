@@ -7,6 +7,7 @@ const Clientes = () => {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ name: '', document: '', phone: '', address: '' });
   const [error, setError] = useState('');
 
@@ -25,16 +26,33 @@ const Clientes = () => {
     }
   };
 
+  const handleOpenModal = (client = null) => {
+    setError('');
+    if (client) {
+        setEditingId(client.id);
+        setFormData({ name: client.name, document: client.document, phone: client.phone || '', address: client.address || '' });
+    } else {
+        setEditingId(null);
+        setFormData({ name: '', document: '', phone: '', address: '' });
+    }
+    setShowModal(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     try {
-      await api.post('/clients', formData);
+      if (editingId) {
+          // Edit
+          await api.put(`/clients/${editingId}`, formData);
+      } else {
+          // Create
+          await api.post('/clients', formData);
+      }
       setShowModal(false);
-      setFormData({ name: '', document: '', phone: '', address: '' });
       fetchClients();
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al crear cliente');
+      setError(err.response?.data?.error || 'Error al guardar cliente. Verifique el documento.');
     }
   };
 
@@ -59,7 +77,7 @@ const Clientes = () => {
             <p>Directorio de prestatarios</p>
           </div>
           <div className="header-actions">
-            <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+            <button className="btn btn-primary" onClick={() => handleOpenModal()}>
               <Plus size={20} /> Nuevo Cliente
             </button>
           </div>
@@ -89,6 +107,9 @@ const Clientes = () => {
                         <td>{c.document}</td>
                         <td>{c.phone}</td>
                         <td>
+                          <button onClick={() => handleOpenModal(c)} style={{ background:'transparent', border:'none', color:'var(--accent-primary)', cursor:'pointer', marginRight:'10px' }}>
+                            <Edit size={18} />
+                          </button>
                           <button onClick={() => handleDelete(c.id)} style={{ background:'transparent', border:'none', color:'var(--accent-danger)', cursor:'pointer' }}>
                             <Trash2 size={18} />
                           </button>
@@ -105,11 +126,11 @@ const Clientes = () => {
         {showModal && (
           <div style={{ position:'fixed', top:0, left:0, right:0, bottom:0, backgroundColor:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', zIndex: 1000 }}>
             <div className="card" style={{ width:'400px' }}>
-              <h2 style={{ marginBottom:'20px', color:'var(--accent-primary)' }}>Nuevo Cliente</h2>
+              <h2 style={{ marginBottom:'20px', color:'var(--accent-primary)' }}>{editingId ? 'Editar Cliente' : 'Nuevo Cliente'}</h2>
               {error && <div style={{ color:'var(--accent-danger)', marginBottom:'10px' }}>{error}</div>}
               <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:'15px' }}>
                 <input placeholder="Nombre Completo" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={inputStyle} />
-                <input placeholder="Documento de Identidad" required value={formData.document} onChange={e => setFormData({...formData, document: e.target.value})} style={inputStyle} />
+                <input placeholder="Documento de Identidad" required disabled={!!editingId} value={formData.document} onChange={e => setFormData({...formData, document: e.target.value})} style={inputStyle} />
                 <input placeholder="Teléfono" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} style={inputStyle} />
                 <input placeholder="Dirección" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} style={inputStyle} />
                 <div style={{ display:'flex', gap:'10px', marginTop:'10px' }}>

@@ -6,6 +6,9 @@ import './../styles.css';
 import Dashboard from './pages/Dashboard';
 import Clientes from './pages/Clientes';
 import Prestamos from './pages/Prestamos';
+import Transacciones from './pages/Transacciones';
+import Reportes from './pages/Reportes';
+import Configuracion from './pages/Configuracion';
 
 // ================= LOGIN =================
 const Login = ({ setAuth }) => {
@@ -70,9 +73,9 @@ const App = () => {
         <Route path="/prestamos" element={isAuthenticated ? <Prestamos /> : <Navigate to="/login" />} />
         
         {/* Dummy Routes */}
-        <Route path="/ingresos-egresos" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
-        <Route path="/reportes" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
-        <Route path="/configuracion" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
+        <Route path="/ingresos-egresos" element={isAuthenticated ? <Transacciones /> : <Navigate to="/login" />} />
+        <Route path="/reportes" element={isAuthenticated ? <Reportes /> : <Navigate to="/login" />} />
+        <Route path="/configuracion" element={isAuthenticated ? <Configuracion /> : <Navigate to="/login" />} />
       </Routes>
     </Router>
   );

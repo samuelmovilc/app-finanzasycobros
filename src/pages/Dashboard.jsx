@@ -3,10 +3,18 @@ import api from '../api';
 import Sidebar from '../components/Sidebar';
 import { Landmark, HandCoins, Clock, Wallet, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [data, setData] = useState({ capital_prestado: 0, caja_actual: 0, recentLoans: [] });
+  const [data, setData] = useState({ 
+    capital_prestado: 0, 
+    caja_actual: 0, 
+    recentLoans: [],
+    total_invertido: 0,
+    intereses_pendientes: 0,
+    chartData: []
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,7 +57,7 @@ const Dashboard = () => {
             </div>
             <div className="card-info">
               <p className="card-label">Total Invertido</p>
-              <h3 className="card-value">$150,000.00</h3>
+              <h3 className="card-value">${Number(data.total_invertido).toLocaleString()}</h3>
               <p className="card-trend neutral">Capital inicial del negocio</p>
             </div>
           </div>
@@ -69,7 +77,7 @@ const Dashboard = () => {
             </div>
             <div className="card-info">
               <p className="card-label">Intereses Pendientes</p>
-              <h3 className="card-value">$12,400.00</h3>
+              <h3 className="card-value">${Number(data.intereses_pendientes).toLocaleString()}</h3>
               <p className="card-trend neutral">Ganancia proyectada</p>
             </div>
           </div>
@@ -89,20 +97,21 @@ const Dashboard = () => {
           <div className="card chart-card">
               <div className="card-header">
                   <h2>Análisis de Préstamos (Últimos 6 meses)</h2>
-                  <select className="filter-select">
-                      <option>Por Mes</option>
-                      <option>Por Año</option>
-                  </select>
               </div>
-              <div className="chart-placeholder">
-                  <div className="bar-chart">
-                      <div className="bar" style={{height: '40%'}}><span>Abr</span></div>
-                      <div className="bar" style={{height: '60%'}}><span>May</span></div>
-                      <div className="bar" style={{height: '50%'}}><span>Jun</span></div>
-                      <div className="bar" style={{height: '80%'}}><span>Jul</span></div>
-                      <div className="bar" style={{height: '70%'}}><span>Ago</span></div>
-                      <div className="bar highlight-bar" style={{height: '100%'}}><span>Sep</span></div>
-                  </div>
+              <div className="chart-placeholder" style={{ height: '300px', marginTop: '20px' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data.chartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                      <XAxis dataKey="name" stroke="#888" axisLine={false} tickLine={false} />
+                      <YAxis stroke="#888" axisLine={false} tickLine={false} tickFormatter={(value) => `$${value}`} />
+                      <Tooltip 
+                        cursor={{fill: 'rgba(255,255,255,0.05)'}} 
+                        contentStyle={{backgroundColor: '#1e2433', border: 'none', borderRadius: '8px', color: '#fff'}}
+                        itemStyle={{color: '#00f2fe'}}
+                      />
+                      <Bar dataKey="total" fill="#00f2fe" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
               </div>
           </div>
 
