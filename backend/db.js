@@ -1,7 +1,7 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
-const dbName = process.env.DB_NAME || 'papeleria_app';
+const dbName = process.env.DB_NAME || 'finanzas_db';
 
 const db = mysql.createPool({
     host: process.env.DB_HOST || '89.117.56.39',
