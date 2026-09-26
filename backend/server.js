@@ -8,6 +8,7 @@ const clientRoutes = require('./src/routes/clients.routes');
 const loanRoutes = require('./src/routes/loans.routes');
 const transactionRoutes = require('./src/routes/transactions.routes');
 const dashboardRoutes = require('./src/routes/dashboard.routes');
+const categoriesRoutes = require('./src/routes/categories.routes');
 
 const app = express();
 app.use(cors());
@@ -21,6 +22,7 @@ app.use('/api/clients', clientRoutes);
 app.use('/api/loans', loanRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/categories', categoriesRoutes);
 
 // Middleware global de manejo de errores
 app.use(errorMiddleware);
