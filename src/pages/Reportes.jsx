@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import api from '../api';
 import Sidebar from '../components/Sidebar';
-import { FileText, Download } from 'lucide-react';
+import { FileText, Download, AlertCircle } from 'lucide-react';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 const Reportes = () => {
   const [loadingLoans, setLoadingLoans] = useState(false);
   const [loadingTrans, setLoadingTrans] = useState(false);
+  const [errorLoans, setErrorLoans] = useState('');
+  const [errorTrans, setErrorTrans] = useState('');
 
   const generateLoansReport = async () => {
     setLoadingLoans(true);
+    setErrorLoans('');
     try {
       const res = await api.get('/loans');
       const doc = new jsPDF();
@@ -23,19 +26,25 @@ const Reportes = () => {
       const tableColumn = ["ID", "Cliente", "Capital", "Interés", "Estado", "Fecha Creación"];
       const tableRows = [];
 
-      res.data.forEach(loan => {
-        const loanData = [
-          loan.id,
-          loan.client_name,
-          `$${Number(loan.capital_amount).toLocaleString()}`,
-          `${loan.interest_rate}%`,
-          loan.status,
-          new Date(loan.created_at).toLocaleDateString()
-        ];
-        tableRows.push(loanData);
-      });
+      const loansData = Array.isArray(res.data) ? res.data : [];
 
-      doc.autoTable({
+      if (loansData.length === 0) {
+          tableRows.push(["-", "No hay préstamos registrados", "-", "-", "-", "-"]);
+      } else {
+          loansData.forEach(loan => {
+            const loanData = [
+              loan.id || '-',
+              loan.client_name || 'Desconocido',
+              `$${Number(loan.capital_amount || 0).toLocaleString()}`,
+              `${loan.interest_rate || 0}%`,
+              loan.status || 'N/A',
+              loan.created_at ? new Date(loan.created_at).toLocaleDateString() : 'N/A'
+            ];
+            tableRows.push(loanData);
+          });
+      }
+
+      autoTable(doc, {
         head: [tableColumn],
         body: tableRows,
         startY: 40,
@@ -43,8 +52,8 @@ const Reportes = () => {
 
       doc.save(`reporte_prestamos_${Date.now()}.pdf`);
     } catch (error) {
-      console.error('Error generando reporte', error);
-      alert('Error al generar el reporte.');
+      console.error('Error generando reporte de préstamos:', error);
+      setErrorLoans('No se pudo generar el reporte. ' + (error.response?.data?.error || 'Intenta de nuevo.'));
     } finally {
       setLoadingLoans(false);
     }
@@ -52,6 +61,7 @@ const Reportes = () => {
 
   const generateTransactionsReport = async () => {
     setLoadingTrans(true);
+    setErrorTrans('');
     try {
       const res = await api.get('/transactions');
       const doc = new jsPDF();
@@ -64,18 +74,24 @@ const Reportes = () => {
       const tableColumn = ["ID", "Fecha", "Concepto", "Tipo", "Monto"];
       const tableRows = [];
 
-      res.data.forEach(t => {
-        const tData = [
-          t.id,
-          new Date(t.created_at).toLocaleDateString(),
-          t.concept,
-          t.type,
-          `$${Number(t.amount).toLocaleString()}`
-        ];
-        tableRows.push(tData);
-      });
+      const transData = Array.isArray(res.data) ? res.data : [];
 
-      doc.autoTable({
+      if (transData.length === 0) {
+          tableRows.push(["-", "-", "No hay transacciones registradas", "-", "-"]);
+      } else {
+          transData.forEach(t => {
+            const tData = [
+              t.id || '-',
+              t.created_at ? new Date(t.created_at).toLocaleDateString() : 'N/A',
+              t.concept || 'Sin concepto',
+              t.type || 'N/A',
+              `$${Number(t.amount || 0).toLocaleString()}`
+            ];
+            tableRows.push(tData);
+          });
+      }
+
+      autoTable(doc, {
         head: [tableColumn],
         body: tableRows,
         startY: 40,
@@ -83,8 +99,8 @@ const Reportes = () => {
 
       doc.save(`reporte_transacciones_${Date.now()}.pdf`);
     } catch (error) {
-      console.error('Error generando reporte', error);
-      alert('Error al generar el reporte.');
+      console.error('Error generando reporte de transacciones:', error);
+      setErrorTrans('No se pudo generar el reporte. ' + (error.response?.data?.error || 'Intenta de nuevo.'));
     } finally {
       setLoadingTrans(false);
     }
@@ -101,15 +117,21 @@ const Reportes = () => {
           </div>
         </header>
 
-        <section className="analysis-section" style={{ gridTemplateColumns: '1fr 1fr' }}>
+        <section className="analysis-section" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
           
           <div className="card summary-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px' }}>
             <FileText size={48} style={{ color: 'var(--accent-primary)', marginBottom: '20px' }} />
-            <h2 style={{ marginBottom: '10px' }}>Cartera de Préstamos</h2>
+            <h2 style={{ marginBottom: '10px', textAlign: 'center' }}>Cartera de Préstamos</h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '20px', textAlign: 'center' }}>
               Descarga un listado completo de todos los préstamos registrados en el sistema, detallando el capital prestado y estado actual.
             </p>
-            <button className="btn btn-primary" onClick={generateLoansReport} disabled={loadingLoans} style={{ width: '100%' }}>
+            {errorLoans && (
+                <div style={{ color: 'var(--accent-danger)', backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '10px', borderRadius: '8px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                    <AlertCircle size={18} />
+                    <span style={{ fontSize: '0.9rem' }}>{errorLoans}</span>
+                </div>
+            )}
+            <button className="btn btn-primary" onClick={generateLoansReport} disabled={loadingLoans} style={{ width: '100%', justifyContent: 'center' }}>
               <Download size={18} style={{ marginRight: '10px' }} /> 
               {loadingLoans ? 'Generando...' : 'Descargar PDF'}
             </button>
@@ -117,11 +139,17 @@ const Reportes = () => {
 
           <div className="card summary-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px' }}>
             <FileText size={48} style={{ color: 'var(--accent-success)', marginBottom: '20px' }} />
-            <h2 style={{ marginBottom: '10px' }}>Transacciones Generales</h2>
+            <h2 style={{ marginBottom: '10px', textAlign: 'center' }}>Transacciones Generales</h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '20px', textAlign: 'center' }}>
               Extrae un listado histórico de todos los ingresos de capital, pagos recibidos, y egresos manuales del sistema.
             </p>
-            <button className="btn btn-primary" onClick={generateTransactionsReport} disabled={loadingTrans} style={{ width: '100%', backgroundColor: 'var(--accent-success)' }}>
+            {errorTrans && (
+                <div style={{ color: 'var(--accent-danger)', backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '10px', borderRadius: '8px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                    <AlertCircle size={18} />
+                    <span style={{ fontSize: '0.9rem' }}>{errorTrans}</span>
+                </div>
+            )}
+            <button className="btn btn-primary" onClick={generateTransactionsReport} disabled={loadingTrans} style={{ width: '100%', backgroundColor: 'var(--accent-success)', justifyContent: 'center' }}>
               <Download size={18} style={{ marginRight: '10px' }} /> 
               {loadingTrans ? 'Generando...' : 'Descargar PDF'}
             </button>
