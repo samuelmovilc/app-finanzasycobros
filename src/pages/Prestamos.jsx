@@ -52,7 +52,7 @@ const Prestamos = () => {
     e.preventDefault();
     setError('');
     try {
-      await api.post('/payments', { ...paymentForm, loan_id: showPaymentModal });
+      await api.post(`/loans/${showPaymentModal}/payments`, { ...paymentForm, loan_id: showPaymentModal });
       setShowPaymentModal(null);
       setPaymentForm({ amount: '', concept: 'Pago de cuota' });
       fetchData();
