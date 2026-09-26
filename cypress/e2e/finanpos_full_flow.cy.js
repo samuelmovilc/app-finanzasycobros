@@ -1,4 +1,4 @@
-describe('FinanPOS - Flujo Crítico End-to-End', () => {
+describe('Sicol Pagos y Créditos - Flujo Crítico End-to-End', () => {
   beforeEach(() => {
     cy.visit('https://app-finanzasycobros-rust.vercel.app');
   });

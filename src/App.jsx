@@ -47,7 +47,7 @@ const Login = ({ setAuth }) => {
   return (
     <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-dark)' }}>
       <div className="card" style={{ width: '400px', padding: '40px' }}>
-        <h2 style={{ textAlign: 'center', marginBottom: '20px', color: 'var(--accent-primary)' }}>FinanPOS</h2>
+        <h2 style={{ textAlign: 'center', marginBottom: '20px', color: 'var(--accent-primary)' }}>Sicol Pagos y Créditos</h2>
         {error && <div style={{ color: 'var(--accent-danger)', marginBottom: '15px' }}>{error}</div>}
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <input 

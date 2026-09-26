@@ -31,7 +31,7 @@ const Sidebar = () => {
         <div className="sidebar-header">
           <div className="logo">
             <Wallet className="logo-icon" size={24} />
-            <h2>FinanPOS</h2>
+            <h2>Sicol Pagos y Créditos</h2>
           </div>
         </div>
         <nav className="sidebar-nav">

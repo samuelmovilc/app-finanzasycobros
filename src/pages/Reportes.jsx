@@ -19,7 +19,7 @@ const Reportes = () => {
       const doc = new jsPDF();
       
       doc.setFontSize(18);
-      doc.text('Reporte de Préstamos Activos', 14, 22);
+      doc.text('Sicol Pagos y Créditos - Reporte de Préstamos Activos', 14, 22);
       doc.setFontSize(11);
       doc.text(`Fecha de generación: ${new Date().toLocaleDateString()}`, 14, 30);
 
@@ -67,7 +67,7 @@ const Reportes = () => {
       const doc = new jsPDF();
       
       doc.setFontSize(18);
-      doc.text('Reporte de Ingresos y Egresos', 14, 22);
+      doc.text('Sicol Pagos y Créditos - Reporte de Ingresos y Egresos', 14, 22);
       doc.setFontSize(11);
       doc.text(`Fecha de generación: ${new Date().toLocaleDateString()}`, 14, 30);
 
