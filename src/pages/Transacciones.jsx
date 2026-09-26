@@ -74,14 +74,14 @@ const Transacciones = () => {
                   ) : (
                     transactions.map(t => (
                       <tr key={t.id}>
-                        <td>{new Date(t.created_at).toLocaleDateString()}</td>
-                        <td>{t.concept}</td>
-                        <td>
+                        <td data-label="Fecha">{new Date(t.created_at).toLocaleDateString()}</td>
+                        <td data-label="Concepto">{t.concept}</td>
+                        <td data-label="Tipo">
                             <span className={`badge ${t.type.includes('INGRESO') || t.type === 'PAGO_RECIBIDO' ? 'active' : 'danger'}`}>
                                 {t.type}
                             </span>
                         </td>
-                        <td>
+                        <td data-label="Monto">
                           <span style={{ color: t.type.includes('INGRESO') || t.type === 'PAGO_RECIBIDO' ? 'var(--accent-success)' : 'var(--accent-danger)' }}>
                             {t.type.includes('INGRESO') || t.type === 'PAGO_RECIBIDO' ? '+' : '-'}${Number(t.amount).toLocaleString()}
                           </span>

@@ -121,12 +121,12 @@ const Prestamos = () => {
                   ) : (
                     loans.map(l => (
                       <tr key={l.id}>
-                        <td>#{l.id}</td>
-                        <td><strong>{l.client_name}</strong></td>
-                        <td>${Number(l.capital_amount).toLocaleString()}</td>
-                        <td>{l.interest_rate}%</td>
-                        <td><span className={`badge ${l.status === 'ACTIVO' ? 'active' : 'neutral'}`}>{l.status}</span></td>
-                        <td>
+                        <td data-label="ID">#{l.id}</td>
+                        <td data-label="Cliente"><strong>{l.client_name}</strong></td>
+                        <td data-label="Capital Inicial">${Number(l.capital_amount).toLocaleString()}</td>
+                        <td data-label="Tasa (%)">{l.interest_rate}%</td>
+                        <td data-label="Estado"><span className={`badge ${l.status === 'ACTIVO' ? 'active' : 'neutral'}`}>{l.status}</span></td>
+                        <td data-label="Acciones">
                           {l.status === 'ACTIVO' && (
                             <button onClick={() => setShowPaymentModal(l.id)} className="btn btn-primary" style={{ padding: '5px 10px', fontSize: '12px', marginRight: '5px' }}>
                               <DollarSign size={14} /> Abonar
@@ -203,9 +203,9 @@ const Prestamos = () => {
                   {paymentsHistory.length === 0 ? <tr><td colSpan="3">No hay abonos registrados</td></tr> : 
                     paymentsHistory.map(p => (
                       <tr key={p.id}>
-                        <td>{new Date(p.created_at).toLocaleDateString()}</td>
-                        <td>{p.concept}</td>
-                        <td>${Number(p.amount).toLocaleString()}</td>
+                        <td data-label="Fecha">{new Date(p.created_at).toLocaleDateString()}</td>
+                        <td data-label="Concepto">{p.concept}</td>
+                        <td data-label="Monto">${Number(p.amount).toLocaleString()}</td>
                       </tr>
                     ))
                   }

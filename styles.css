@@ -403,35 +403,91 @@ input, select, textarea {
     z-index: 90;
 }
 
-/* Responsividad */
-@media (max-width: 1024px) {
-    .analysis-section { grid-template-columns: 1fr; }
+/* Responsividad Inteligente (Ultrawide, Desktop, Tablet, Mobile) */
+
+/* Ultrawide (1440px+) */
+@media (min-width: 1440px) {
+    .summary-cards {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    .analysis-section {
+        grid-template-columns: 1fr 2fr; /* Gráfico más ancho */
+    }
 }
 
+/* Tablet / Desktop Pequeño (1024px e inferior) */
+@media (max-width: 1024px) {
+    .analysis-section { 
+        grid-template-columns: 1fr; 
+    }
+}
+
+/* Mobile Premium (< 768px) */
 @media (max-width: 768px) {
     .mobile-menu-btn { display: block; }
     
     .sidebar { 
         transform: translateX(-100%); 
-        transition: transform 0.3s ease-in-out;
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); /* Transición suave */
+        width: 280px; /* Un poco más ancho en móvil para mejor legibilidad */
     }
     
     .sidebar.open {
         transform: translateX(0);
+        box-shadow: 4px 0 24px rgba(0,0,0,0.5);
     }
     
     .sidebar-overlay {
         display: block;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .sidebar.open ~ .sidebar-overlay,
+    .sidebar-overlay.active /* Fallback class */ {
+        opacity: 1;
+        visibility: visible;
     }
 
     .main-content { 
         margin-left: 0; 
-        padding: 80px 20px 20px 20px; 
+        padding: 80px 16px 24px 16px; /* Más espacio para el botón de menú flotante */
+        width: 100%;
+        overflow-x: hidden;
     }
     
-    .summary-cards { grid-template-columns: 1fr; }
+    .header-title h1 {
+        font-size: 24px; /* Escalar texto para móvil */
+    }
+    
+    .header-actions {
+        width: 100%;
+        margin-top: 16px;
+    }
+    
+    .header-actions .btn {
+        width: 100%; /* Botones de acción ocupan todo el ancho en móvil */
+        height: 48px; /* Táctil mínimo */
+    }
+    
+    .top-header {
+        flex-direction: column;
+        align-items: flex-start;
+        margin-bottom: 24px;
+    }
+    
+    .summary-cards { 
+        grid-template-columns: 1fr; /* Apilado vertical */
+        gap: 16px;
+    }
 
     /* Convertir tablas a vista de tarjetas (Cards) en móvil */
+    .table-responsive {
+        border: none;
+        background: transparent;
+    }
+
     .data-table, .data-table tbody, .data-table tr, .data-table td {
         display: block;
         width: 100%;
@@ -448,19 +504,23 @@ input, select, textarea {
         padding: 16px;
         border: 1px solid var(--border-color);
         box-shadow: var(--shadow-soft);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
     }
     
     .data-table td {
         border-bottom: 1px solid rgba(255,255,255,0.05);
-        padding: 10px 0;
+        padding: 0 0 12px 0;
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
         text-align: right;
     }
     
     .data-table td:last-child {
         border-bottom: none;
+        padding-bottom: 0;
     }
     
     .data-table td::before {
@@ -468,7 +528,26 @@ input, select, textarea {
         font-weight: 600;
         color: var(--text-muted);
         text-transform: uppercase;
-        font-size: 12px;
+        font-size: 11px;
         text-align: left;
+        margin-right: 16px;
+        flex-shrink: 0;
+    }
+
+    /* Ajustar tamaño del contenedor del gráfico para que no se desborde */
+    .chart-placeholder {
+        height: 250px !important;
+        margin-left: -20px; /* Compensar padding de recharts en móvil */
+    }
+}
+
+/* Ajustes específicos para celulares pequeños (iPhone SE - 375px) */
+@media (max-width: 380px) {
+    .card {
+        padding: 16px; /* Menos padding interior para ganar espacio */
+    }
+    
+    .card-value {
+        font-size: 20px; /* Reducir tamaño de fuente en métricas grandes */
     }
 }

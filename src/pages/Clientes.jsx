@@ -103,10 +103,10 @@ const Clientes = () => {
                   ) : (
                     clients.map(c => (
                       <tr key={c.id}>
-                        <td><strong>{c.name}</strong></td>
-                        <td>{c.document}</td>
-                        <td>{c.phone}</td>
-                        <td>
+                        <td data-label="Nombre"><strong>{c.name}</strong></td>
+                        <td data-label="Documento">{c.document}</td>
+                        <td data-label="Teléfono">{c.phone}</td>
+                        <td data-label="Acciones">
                           <button onClick={() => handleOpenModal(c)} style={{ background:'transparent', border:'none', color:'var(--accent-primary)', cursor:'pointer', marginRight:'10px' }}>
                             <Edit size={18} />
                           </button>

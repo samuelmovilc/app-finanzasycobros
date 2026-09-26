@@ -135,10 +135,10 @@ const Dashboard = () => {
                   ) : (
                     data.recentLoans.map(loan => (
                       <tr key={loan.id}>
-                        <td><strong>{loan.client_name}</strong></td>
-                        <td>${Number(loan.capital_amount).toLocaleString()}</td>
-                        <td>{loan.interest_rate}%</td>
-                        <td><span className="badge active">{loan.status}</span></td>
+                        <td data-label="Cliente"><strong>{loan.client_name}</strong></td>
+                        <td data-label="Capital">${Number(loan.capital_amount).toLocaleString()}</td>
+                        <td data-label="Tasa (%)">{loan.interest_rate}%</td>
+                        <td data-label="Estado"><span className="badge active">{loan.status}</span></td>
                       </tr>
                     ))
                   )}
